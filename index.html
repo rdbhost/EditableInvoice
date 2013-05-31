@@ -3,10 +3,16 @@
     <head>
   	<meta charset="utf-8">
 
-  	<title>Editable Invoice</title>
+  	<title>noBackend Invoice</title>
+    <!-- no ssl cert available, so we work in http, when reloaded after openid login, referrer uses https:,
+       so check and switch back, in that case -->
+    <script>
+      if ( document.location.protocol === 'https' || document.location.protocol === 'https:' )
+        document.location.protocol = 'http';
+    </script>
 
-  	<link rel='stylesheet' href='css/style.css' />
-    <link rel='stylesheet' href='css/bootstrap.css' />
+    <link rel='stylesheet' href='http://www.rdbhost.com/vendor/bootstrap/2.3/css/bootstrap.css' />
+    <link rel='stylesheet' href='css/style.css' />
     <link rel='stylesheet' href='css/main.css' />
   	<link rel='stylesheet' href='css/print.css' media="print" />
   </head>
@@ -32,54 +38,50 @@
         <button class="download btn btn-inverse btn-small"><i class="icon-white icon-download-alt"></i> Download</button>
         <button class="email btn btn-inverse btn-small"><i class="icon-white icon-envelope"></i> Email</button>
 
-        <div class="hoodie-accountbar">
+        <div class="accountbar">
 
-          <div class="hoodie-account-signedout">
+
+          <div class="account-signedout">
             <span class="btn-group dropup">
-              <button class="btn btn-small btn-inverse" data-hoodie-action="signup">Sign Up</button>
-              <button class="btn btn-small dropdown-toggle btn-inverse" data-toggle="dropdown">
-                <span class="caret"></span>
-              </button>
-              <ul class="dropdown-menu pull-right">
-                <li><a href="#" data-hoodie-action="signin">Sign In</a></li>
-                <li><a href="#" data-hoodie-action="resetpassword">Reset Password</a></li>
-                <li><a href="#" data-hoodie-action="destroy">Clear local data</a></li>
-              </ul>
+              <button class="btn btn-small btn-inverse" href="#loginModal" id="loginLink" data-toggle="modal">Sign In</button>
             </span>
-          </div><!-- /.hoodie-account-signedout -->
+          </div><!-- /.account-signedout -->
 
-          <div class="hoodie-account-signedin">
+          <div class="account-signedin">
             Hello,
-            <span class="hoodie-username"><!-- usern name will be filled in here --></span>
+            <span class="username"><!-- usern name will be filled in here --></span>
             <span class="btn-group dropup">
-              <button class="btn btn-small btn-inverse" data-hoodie-action="signout">Sign Out</button>
-              <button class="btn btn-small dropdown-toggle btn-inverse" data-toggle="dropdown">
-                <span class="caret"></span>
-              </button>
-              <ul class="dropdown-menu pull-right">
-                <li><a href="#" data-hoodie-action="changepassword">Change Password</a></li>
-                <li><a href="#" data-hoodie-action="changeusername">Change Username</a></li>
-                <li><a href="#" data-hoodie-action="destroy">Destroy Account</a></li>
-              </ul>
+              <button class="signout btn btn-small btn-inverse">Sign Out</button>
             </span>
-          </div><!-- /.hoodie-account-signedin -->
+          </div><!-- /.account-signedin -->
 
-          <div class="hoodie-account-error">
-            Hello,
-            <span class="hoodie-username"><!-- usern name will be filled in here --></span>.
-            <span class="btn-group dropup">
-              <button class="btn btn-small btn-danger" data-hoodie-action="signin">Authentication error: Sign in again</button>
-              <button class="btn btn-small dropdown-toggle btn-danger" data-toggle="dropdown">
-                <span class="caret"></span>
-              </button>
-              <ul class="dropdown-menu pull-right">
-                <li><a href="#" data-hoodie-action="signout">Sign out</a></li>
-              </ul>
-            </span>
-          </div><!-- /.hoodie-account-error -->
         </div>
       </div>
     </div>
+
+    <!-- login Modal -->
+    <div id="loginModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="li" aria-hidden="true">
+      <div class="modal-header">
+        <h4 id="myModalLabel">To use this Invoice app, please login.</h4>
+      </div>
+      <div class="modal-body" id="form-container">
+        <form id="openidForm"  action="~" method="post">
+          <p>You can login using your Yahoo email account or GMail account.</p>
+
+          <div>
+            <btn type="submit" value="Google" id="google" class="btn">Google</btn>
+            <btn type="submit" value="Yahoo" id="yahoo" class="btn">Yahoo</btn>
+          </div>
+          <input name="openidurl" size="75" placeholder="OpenId identifier" style="display:none" />  <br/>
+        </form>
+      </div>
+    </div>
+
+    <!-- GitHub badge -->
+    <a class="forkme" href="https://github.com/rdbhost/EditableInvoice">
+      <img style="position: absolute; top: 0; right: 0; border: 0;" src="/img/forkme.png" alt="Fork me on GitHub">
+    </a>
+
 
     <script id="invoiceItem" class="partial" type="text/html">
       <tr class="item-row">
@@ -170,17 +172,20 @@
       </div><!-- /terms -->
     </script>
 
-    <script src='js/vendor/jquery-1.9.1.js'></script>
-    <script src='js/vendor/hoodie.js'></script>
-    <script src='js/vendor/bootstrap.js'></script>
-    <script src='js/vendor/html2canvas.min.js'></script>
-    <script src='js/hoodie.accountbar.bootstrap.js'></script>
-    <script src='js/bootstrap.modalform.js'></script>
-    <script src='js/jquery.autosize-min.js'></script>
-    <script src='js/ICanHaz.min.js'></script>
+    <!-- shared vendor libs -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.js"> </script>
+    <script src='http://www.rdbhost.com/vendor/bootstrap/2.3/js/bootstrap.min.js'></script>
+    <script src='http://www.rdbhost.com/vendor/ICanHaz.min.js'></script>
+    <script src='http://www.rdbhost.com/vendor/html2canvas.min.js'></script>
+    <script src='http://www.rdbhost.com/vendor/jquery.autosize-min.js'></script>
+    <script src="http://www.rdbhost.com/js/jquery.cookie.js"></script>
+    <script src="http://www.rdbhost.com/js/easyxdm/easyXDM.js"></script>
+    <script src="http://www.rdbhost.com/js/jquery.rdbhost.exdm.js"></script>
+    <script src='/js/shared/bootstrap.modalform.js'></script>
+
 
     <script src='js/example.js'></script>
+    <script src="js/rdbhost.js"></script>
     <script src='js/main.js'></script>
-    <script src='js/fake.js'></script>
   </body>
 </html>

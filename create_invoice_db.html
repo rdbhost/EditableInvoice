@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Rdbhost JavaScript DB Creator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="../../shared/vendor/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+        body {
+            padding-top: 60px;
+            padding-bottom: 40px;
+        }
+    </style>
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements --><!--[if lt IE 9]>
+    <script src="http://www.rdbhost.com/js/html5shim.js"></script><![endif]-->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.js"></script>
+    <script src="http://www.rdbhost.com/js/easyxdm/easyXDM.debug.js"></script>
+    <script src="http://www.rdbhost.com/js/jquery.rdbhost.exdm.js"></script>
+    <script src="http://www.rdbhost.com/js/json2.js"></script>
+    <script>
+
+        TABLE_ALREADY_EXISTS = '42P07';
+        SCHEMA_ALREADY_EXISTS = '42P06';
+
+        function add_status_line(stat) {
+
+            var $stat = $('<li>~</li>'.replace('~', stat));
+            $('#status').append($stat);
+        }
+
+        $(document).ready(function () {
+
+            var grantPrivs = 'GRANT INSERT, SELECT, UPDATE ON invoices TO p0000001256';
+
+            var createInvoiceTableSQL =
+                'CREATE TABLE "invoices" (               \n'+
+                '      id varchar(25) NOT NULL,          \n'+
+                '      stuff text NOT NULL,              \n'+
+                '      updatedOn date,                   \n'+
+                '      createdOn date DEFAULT now(),     \n'+
+                '      createdBy varchar(75) NULL        \n'+
+                ');                                      \n'+
+                'ALTER TABLE "invoices"                  \n'+
+                '  ADD CONSTRAINT "pk" PRIMARY KEY (id); \n';
+
+            var createEmailTableSQL =
+                'DROP TABLE IF EXISTS "auth"."apis";     \n'+
+                'CREATE TABLE "auth"."apis" (            \n'+
+                '    postmarkkey varchar(50) NOT NULL    \n'+
+                ');                                      \n'+
+                'GRANT SELECT ON "auth"."apis" TO ~pre;  \n'+
+                'INSERT INTO "auth"."apis"               \n'+
+                '    (postmarkkey) VALUES(%(key));         ';
+
+            function createInvoicesTable() {
+
+                return $.postData({
+
+                    'q': createInvoiceTableSQL,
+
+                    'callback':function () {
+                        add_status_line('Invoices Table created');
+                    },
+
+                    'errback':function (err, errmsg) {
+
+                        //alert(errmsg);
+                        if (err === TABLE_ALREADY_EXISTS)
+                            add_status_line('Table Invoices already exists');
+                        else
+                            add_status_line(errmsg);
+                    }
+                });
+            }
+
+            function grantPrivsPreauth() {
+
+                return $.postData({
+
+                    'q':grantPrivs,
+
+                    'callback': function () {
+
+                        add_status_line('Privs granted to preauth role');
+                    },
+
+                    'errback': function (err, errmsg) {
+
+                        add_status_line(errmsg);
+                    }
+                });
+            }
+
+          function createEmailAuthTable(key) {
+
+            return $.postData({
+
+              'q': createEmailTableSQL.replace('~pre','p0000001256'),
+              namedParams: { 'key': key },
+
+              'callback': function () {
+
+                alert('Email API key was stored privately on the server.');
+              },
+
+              'errback': function (err, errmsg) {
+
+                alert(errmsg);
+              }
+            });
+          }
+
+          function clear_add_form() {
+
+                $('#title').val('');
+                $('#rating').val('');
+            }
+
+            var passw = prompt('Enter your login password for invoice@travelbyroad.net:');
+
+            $.loginAjax({
+
+              email: 'invoice@travelbyroad.net',
+              password: passw,
+
+              userName: "r0000001256",
+              authcode: '-',
+              domain: 'www.rdbhost.com',
+
+              errback: function(code,msg) {
+                alert(code + ' ' + msg);
+              },
+
+              callback: function(resp) {
+
+                var recOne = resp.records.rows[0],
+                    authcode = recOne.authcode;
+
+                // tell rdbhost module what role and account we are using
+                //
+                $.rdbHostConfig({
+                  'userName':"s0000001256",
+                  'authcode': authcode,
+                  'domain':"www.rdbhost.com"
+                });
+
+                // create stuff
+                //
+                createInvoicesTable()
+                    .then(grantPrivsPreauth, grantPrivsPreauth);
+
+                $('#emailsetup').click(function() {
+
+                    var pmKey = prompt('Enter your PostmarkApp API key');
+
+                    createEmailAuthTable(pmKey);
+                })
+              }
+            })
+          });
+    </script>
+
+</head>
+
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top">
+    <div class="navbar-inner">
+        <div class="container">
+            <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span>
+            </button>
+            <a class="brand" href="/">Rdbhost DB Creation</a>
+
+            <div class="nav-collapse collapse">
+                <ul class="nav">
+                    <li class="active"><a href="/">Home</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Main hero unit for a primary marketing message or call to action -->
+    <div class="hero-unit">
+
+        <h2>Invoice</h2>
+
+        <p>This page uses the Super role to create the tables for the nobackend invoice app. Unless
+            the Loading Status window shows errors, loading this page has already accomplished the setup you need.</p>
+        <p>Load the <a href="index.html">Invoice</a> page while the account is in training
+            mode, and exercise each of the options to train the account white-list.</p>
+        <p>The code here is deliberately austere, with no input validation, so input errors are reflected as Database
+            errors.  </p>
+        <p></p>
+        <p>Click <a id='emailsetup' href="#">here</a> to create the server side tables for email sending.  Have your
+          <i>Postmarkapp</i> API key available to enter.</p>
+        <!-- p><a href="#" class="btn btn-primary btn-large">Learn more &raquo;</a></p -->
+    </div>
+
+    <!-- Example row of columns -->
+    <div class="row">
+
+        <div class="span4">
+            <h4>Loading Status</h4>
+            <ul id="status"> </ul>
+        </div>
+
+    </div>
+
+    <hr>
+
+    <footer>
+        <p>&copy; David Keeney 2013</p>
+    </footer>
+
+</div>
+<!-- /container -->
+
+<!-- Le javascript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="http://www.rdbhost.com/js/bootstrap.13.2.js"></script>
+
+</body>
+</html>

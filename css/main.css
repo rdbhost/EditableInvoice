@@ -16,21 +16,21 @@ body {
 
 
 /* hide contents until we know if user is signed in or not */
-body .hoodie-account-signedin,
+body .account-signedin,
 /*body .hoodie-account-signedout,*/
-html[data-hoodie-account-status=signedin]  .hoodie-account-signedout,
-html[data-hoodie-account-status=error]  .hoodie-account-signedout,
-body .hoodie-account-error {
+html[data-account-status=signedin]  account-signedout,
+html[data-account-status=error]  account-signedout,
+body .account-error {
   display: none;
 }
 
-html[data-hoodie-account-status=signedin]  .hoodie-account-signedin,
-html[data-hoodie-account-status=error]     .hoodie-account-error,
-html[data-hoodie-account-status=signedout] .hoodie-account-signedout {
+html[data-account-status=signedin]  .account-signedin,
+html[data-account-status=error]     .account-error,
+html[data-account-status=signedout] .account-signedout {
   display: block;
 }
 
-.hoodie-accountbar {
+.accountbar {
   position: absolute;
   top: 8px;
   right: 0px;
@@ -38,12 +38,12 @@ html[data-hoodie-account-status=signedout] .hoodie-account-signedout {
   color: white;
 }
 
-.hoodie-account-signedin{
+.account-signedin{
   font-size: 12px;
   line-height: 24px;
 }
 
-.hoodie-username{
+.username{
   margin-right: 10px;
 }
 

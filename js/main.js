@@ -1,49 +1,57 @@
-if (location.port == 1234) {
-  window.hoodie  = new Hoodie('http://api.editableinvoicehoodie.dev');  
-} else {
-  window.hoodie  = new Hoodie('http://api.hoodie-invoice.jit.su/');
-}
 
 
-window.store = hoodie.store;
-window.remote = hoodie.remote;
-window.account = hoodie.account;
+$(document).ready(function() {
 
-var init = function() {
   currentId = null;
   defaultData = {
+
     items: [
        {
-           "item-name": "Example item",
+           "item-name": "item",
            "item-description": "Example item description",
-           "item-cost": "$650.00",
+           "item-cost": "$65.20",
            "item-qty": "2"
        }
    ],
+
    date: new Date().ddmmyyyy(),
    paid: "$0.00",
    header: "INVOICE",
    terms: 'NET 30 Days. Finance Charge of 1.5% will be made on unpaid balances after 30 days.',
-   address: "Gregor Martynus\nc/o HUB Zürich\nViaduktstrasse 93-95\nCH-8005 Zurich\nSwitzerland"
+   address: "David Keeney\nEl Paso, TX 79930\nUSA",
+   id: ''
+  };
+
+  if ( isLoggedIn() ) {
+
+    buildInvoiceList(true);
   }
+
   $('textarea').autosize();
+
   $('button.newInvoice').click(function(event){
     event.preventDefault();
     newInvoice();
   });
+
   $('button.deleteInvoice').click(function(event){
     event.preventDefault();
     if (window.confirm("Really delete this invoice?")) {
-      deleteInvoice();
+      deleteInvoice(currentId);
+      buildInvoiceList(false);
     }
   });
+
   $('.invoiceList').on('click', 'a', function(event) {
     event.preventDefault();
-    var id = $(this).data('id')
+    var id = $(this).data('id');
     loadInvoice(id);
   });
 
+
+
   $('#page-wrap').on('input change', 'textarea', function(event){
+
     var data = null;
     if($(this).closest('.item-row').length !== 0){
       data = serializeItems();
@@ -51,64 +59,68 @@ var init = function() {
       data = {};
       data[$(this).attr('name')] = $(this).val()
     }
-    hoodie.store.update('invoice', currentId , data).done(function(){
+    updateInvoice(currentId,data).done(function(){
       buildInvoiceList();
     })
-  })
+  });
 
-  hoodie.account.on('authenticated', function(){
-    setTimeout(buildInvoiceList, 1000, true);
-  })
-
-  $('.download.btn').click( downloadInvoice )
-  $('.email.btn').click( sendInvoice )
-  buildInvoiceList(true);
-  $invoice = $('.invoiceSheet')
-  $downloadButton = $('.download.btn')
-  $emailButton = $('.email.btn')
+  $downloadButton = $('.download.btn');
+  $emailButton = $('.email.btn');
+  $signoutButton = $('.signout.btn');
+  $downloadButton.click( downloadInvoice );
+  $emailButton.click( sendInvoice );
+  $signoutButton.click( signUserOut );
+  $invoice = $('.invoiceSheet');
   $footerBar = $('.footerBar')
-}
+});
 
 var onAddRow = function() {
-  hoodie.store.update('invoice', currentId , serializeItems());
-}
+  updateInvoice( currentId, serializeItems() );
+};
 
 var onDeleteRow = function() {
-  hoodie.store.update('invoice', currentId , serializeItems());
-}
+  updateInvoice( currentId, serializeItems() );
+};
 
 var serializeItems = function() {
-  var data = {}
-  data.items = []
+
+  var data = {};
+  data.items = [];
   $('.item-row').each(function(index){
     $('textarea', this).each(function(index){
       var datatype = $(this).attr('name');
       if(datatype !== undefined){
         if(datatype === 'item-name'){
-          item = {}
+          item = {};
         }
-        item[datatype] = $(this).val()
+        item[datatype] = $(this).val();
         if(datatype === 'item-qty'){
-          data.items.push(item)
+          data.items.push(item);
         }
       }
-    })
-  })
+    });
+    data.id = currentId;
+  });
   return data;
-}
+};
 
 var buildInvoiceList = function(loadLastInvoice) {
+
   $('.invoiceList').empty();
-  hoodie.store.findAll('invoice').done(function(invoices){
+  getAllInvoices().done(function(invoices){
+
     invoices.forEach(function(invoice){
+
       if(invoice.customer === ""){
         $('.invoiceList').append('<li><a href="#" data-id="'+invoice.id+'">New invoice</a></li>')
       } else {
         $('.invoiceList').append('<li><a href="#" data-id="'+invoice.id+'">'+invoice.customer+' - '+invoice.invoiceNr+'</a></li>')
       }
     });
+
     if(loadLastInvoice){
-      var $lastInvoice = $('.invoiceList li:last-child a')
+
+      var $lastInvoice = $('.invoiceList li:last-child a');
       if($lastInvoice.length !== 0){
         loadInvoice($lastInvoice.data('id'))
       } else {
@@ -116,20 +128,25 @@ var buildInvoiceList = function(loadLastInvoice) {
       }
     }
   });
-}
+};
+
 
 var newInvoice = function(){
+
+  currentId = defaultData.id = uuid(5);
   var html = ich.invoice(defaultData);
   $('#page-wrap').empty().append(html);
   $('.item-row').each(function(){update_price(this)});
   $('textarea').autosize();
   saveInvoice();
-}
+};
+
 
 var serializeCurrentInvoiceData = function() {
-  var data = {}
-  var item = null
-  data.items = []
+
+  var data = {};
+  var item = null;
+  data.items = [];
   $('textarea').each(function(index){
     var datatype = $(this).attr('name');
     if(datatype !== undefined){
@@ -141,87 +158,93 @@ var serializeCurrentInvoiceData = function() {
         if(datatype === 'item-name'){
           item = {}
         }
-        item[datatype] = $(this).val()
+        item[datatype] = $(this).val();
         if(datatype === 'item-qty'){
           data.items.push(item)
         }
       }
     }
-  })
-  return data;
-}
-
-var deleteInvoice = function(){
-  hoodie.store.remove('invoice', currentId).done(function(){
-    buildInvoiceList(true);
   });
-}
+  data.id = currentId;
+  return data;
+};
 
 var loadInvoice = function(id) {
-  hoodie.store.find('invoice', id).done(function(invoice){
+
+  getOneInvoice(id).done(function(invoice){
+
     var html = ich.invoice(invoice);
     $('#page-wrap').empty().append(html);
     $('.item-row').each(function(){update_price(this)});
     $('textarea').autosize();
     currentId = invoice.id;
-  })
-}
+  });
+};
 
 var saveInvoice = function() {
-  data = serializeCurrentInvoiceData();
-  hoodie.store.add('invoice', data)
+
+  var data = serializeCurrentInvoiceData();
+  updateInvoice(data.id, data)
   .done(function(data){
-    buildInvoiceList()
-    currentId = data.id;
+    buildInvoiceList();
   })
   .fail(function(data){
-    console.log("Invoice not saved", data)
+    console.log("Invoice not saved", data);
   })
-}
+};
 
 var currentInvoiceToHTML = function() {
+
   var $result = $('#page-wrap').clone();
-  $result.find('#hiderow, .notPartOfInvoice').remove()
+  $result.find('#hiderow, .notPartOfInvoice').remove();
   return $result.html().replace(/<textarea[^>]*>/g, '');
-}
+};
 
 var currentInvoiceToText = function() {
+
   var text = "";
   $('#header, #address, #customer-title').each(function(index){
     text += $(this).val().trim()+"\n\n"
-  })
+  });
+
   $('#meta tr').each(function(index){
+
     text += $(this).find('td:eq(0)').text()+ ": "+$(this).find('td:eq(1)').text()+ '\n'
-  })
-  text += '\n'
+  });
+  text += '\n';
+
   $('.item-row').each(function(index){
-    text += $(this).find('textarea:eq(0)').text()+ "\n"
+
+    text += $(this).find('textarea:eq(0)').text()+ "\n";
     text += $(this).find('textarea:eq(1)').text()+' - ';
     text += $(this).find('textarea:eq(3)').text()+' x ';
     text += $(this).find('textarea:eq(2)').text()+'\n';
     text += 'Price: '+$(this).find('.price').text()+'\n\n';
-  })
-  text += 'Subtotal: '+$('#subtotal').text()+'\n'
-  text += 'Total: '+$('#total').text()+'\n'
-  text += 'Amount paid: '+$('#paid').val()+'\n\n'
-  text += 'Balance due: '+$('.total-value .due').text()+'\n\n'
-  text += 'Terms: '+$('#terms textarea').val()+'\n\n'
+  });
+
+  text += 'Subtotal: '+$('#subtotal').text()+'\n';
+  text += 'Total: '+$('#total').text()+'\n';
+  text += 'Amount paid: '+$('#paid').val()+'\n\n';
+  text += 'Balance due: '+$('.total-value .due').text()+'\n\n';
+  text += 'Terms: '+$('#terms textarea').val()+'\n\n';
   return text;
-}
+};
 
 var currentInvoiceNr = function() {
+
   return $.trim( $('[name=invoiceNr]').val() )
-}
+};
+
 var currentInvoiceTitle = function() {
+
   return  "Invoice " + currentInvoiceNr()
-}
+};
 
 var convertElementToDataUrl = function( el, fileName ) {
-  var fileName
-  var fileType
-  var fileExtension
-  var defer = $.Deferred()
 
+  var fileType,
+      fileExtension,
+      defer = $.Deferred();
 
   // be nice to jQuery-ists
   if (el[0]) { el = el[0]; }
@@ -230,20 +253,20 @@ var convertElementToDataUrl = function( el, fileName ) {
     fileName = "invoice.png";
     fileType = "image/png";
   } else {
-    fileExtension = fileName.match(/\.(.*)$/)
+    fileExtension = fileName.match(/\.(.*)$/);
     if (! fileExtension) {
-      defer.reject("Sorry, you need to set a supported file extension (.jpeg, .png, .pdf)!")
+      defer.reject("Sorry, you need to set a supported file extension (.jpeg, .png, .pdf)!");
       return defer.promise()
     }
-    fileExtension = fileExtension.pop()
+    fileExtension = fileExtension.pop();
     switch (fileExtension) {
       case 'jpg':
       case 'jpeg':
-        fileType = "image/jpeg"
+        fileType = "image/jpeg";
         break;
 
       case 'png':
-        fileType = "image/png"
+        fileType = "image/png";
         break;
 
       // unfortunately not supported yet, that'll need some backend magic.
@@ -260,12 +283,13 @@ var convertElementToDataUrl = function( el, fileName ) {
     onrendered: function(canvas) {
       defer.resolve(canvas.toDataURL( fileType ), fileName, fileType)
     }
-  })
+  });
 
   return defer.promise()
 };
 
 var downloadInvoice = function() {
+
   var invoiceName = $('.invoiceNr').val() || "invoice";
   var fileName = invoiceName + ".png";
 
@@ -276,6 +300,7 @@ var downloadInvoice = function() {
 };
 
 var download = function(uri, fileName) {
+
   function eventFire(el, etype){
       if (el.fireEvent) {
           (el.fireEvent('on' + etype));
@@ -290,9 +315,10 @@ var download = function(uri, fileName) {
   link.download = fileName;
   link.href = uri;
   eventFire(link, "click");
-}
+};
 
  Date.prototype.ddmmyyyy = function() {
+
    var yyyy = this.getFullYear().toString();
    var mm = (this.getMonth()+1).toString(); // getMonth() is zero-based
    var dd  = this.getDate().toString();
@@ -303,17 +329,40 @@ d = new Date();
 d.ddmmyyyy();
 
 
-var sendInvoice = function(email) {
-  if (typeof email != "string") {
-    email = prompt("Recipient:")
-  }
-  return sendEmail({
-    to: email,
-    subject: 'Invoice #' + currentInvoiceNr(),
-    html: currentInvoiceToHTML(),
-    text: currentInvoiceToText(),
-    attachments: [ convert( $('.invoiceSheet') ).to("invoice.png") ]
+var getInvoiceAsB64Blob = function() {
+
+  var invoiceName = $('.invoiceNr').val() || "invoice";
+  var fileName = invoiceName + ".png";
+
+  return convertElementToDataUrl( $('.invoiceSheet'), fileName )
+      .then( function(dataUrl, fName, fType) {
+        var begin = dataUrl.indexOf(',');
+        if ( dataUrl.substr(0,begin).indexOf('base64') < 0 ) {
+          alert('invoice image not in base64: '+dataUrl.substr(0,begin));
+          return '';
+        }
+        return dataUrl.substr(begin+1);
+      })
+};
+
+
+var sendInvoice = function(invoice) {
+
+  var recipient = prompt("Recipient: ");
+  if (! recipient)
+    return;
+
+  var iab = getInvoiceAsB64Blob();
+  iab.then( function(blob) {
+
+    send_email({
+      to: recipient,
+      subject: currentInvoiceTitle(),
+      html: currentInvoiceToHTML(),
+      text: currentInvoiceToText(),
+      attachments: [ [ 'invoice.png', blob ] ]
+    })
   })
 };
 
-$( init )
+
