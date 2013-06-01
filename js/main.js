@@ -99,8 +99,9 @@ var serializeItems = function() {
         }
       }
     });
-    data.id = currentId;
   });
+  
+  data.id = currentId;
   return data;
 };
 
